@@ -1,15 +1,17 @@
 import * as fetch from 'node-fetch';
 import * as config from './util/config';
 import HttpsProxyAgent from 'https-proxy-agent';
-import * as DB from './db';
+import {DB} from './db';
 import { XummTypes } from 'xumm-sdk';
 import { GenericBackendPostRequestOptions, AllowedOrigins } from './util/types';
+import { Vanity } from './vanity';
 
 export class Xumm {
 
     proxy = new HttpsProxyAgent(config.PROXY_URL);
     useProxy = config.USE_PROXY;
-    db = new DB.DB();
+    db = new DB();
+    vanity = new Vanity();
 
     async init() {
         await this.db.initDb("xumm");
@@ -112,6 +114,8 @@ export class Xumm {
         } catch(err) {
             console.log("err creating payload request")
             console.log(JSON.stringify(err));
+
+            throw "err creating payload request";
         }
 
         console.log("[XUMM]: payload to send:" + JSON.stringify(payload));
@@ -255,12 +259,16 @@ export class Xumm {
             }
             
             if(originProperties.fixAmount) {
-                if(originProperties.fixAmount[referer])
-                    payload.txjson.Amount = originProperties.fixAmount[referer];
-                else if(originProperties.fixAmount[origin+'/*'])
-                    payload.txjson.Amount = originProperties.fixAmount[origin+'/*'];
-                else if(originProperties.fixAmount['*'])
-                    payload.txjson.Amount = originProperties.fixAmount['*'];
+                let usdAmount = -1;
+                let vanityData:any = payload.custom_meta.blob;
+                let vanityLength:string = vanityData.vanityLength;
+
+                if(originProperties.fixAmount[vanityLength]) {
+                    usdAmount = originProperties.fixAmount[vanityLength];
+                    payload.txjson.Amount = this.vanity.convertUSDtoXRP(usdAmount);
+                } else {
+                    throw "Invalid amount or vanity length";
+                }
             }
         }
 

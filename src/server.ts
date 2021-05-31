@@ -22,15 +22,6 @@ fastify.register(require('fastify-compress'));
 console.log("adding some security headers");
 fastify.register(require('fastify-helmet'));
 
-fastify.register(require('fastify-swagger'), {
-  mode: 'static',
-  specification: {
-    path: './src/doc/swagger-doc.yaml'
-  },
-  exposeRoute: true,
-  routePrefix: '/docs'
-});
-
 let mongo = new DB.DB();
 let xummBackend:Xumm.Xumm = new Xumm.Xumm();
 let allowedOrigins:string[];

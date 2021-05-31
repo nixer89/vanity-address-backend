@@ -225,6 +225,19 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
+    fastify.get('/api/v1/properties/amounts', async (request, reply) => {
+        
+        try {
+            let origin = request && request.query && request.query.origin ? request.query.origin : request.headers.origin;
+            let appId = await db.getAppIdForOrigin(origin);
+            let originProperties:any = await db.getOriginProperties(appId);
+            console.log("fix amount: " + JSON.stringify(originProperties.fixAmount));
+            return originProperties.fixAmount;                
+        } catch {
+            return { success : false, error: true, message: 'Something went wrong. Please check your request'};
+        }
+    });
+
     fastify.post('/api/v1/webhook', async (request, reply) => {
         return handleWebhookRequest(request);
     });
@@ -261,15 +274,15 @@ async function handleWebhookRequest(request:any): Promise<any> {
 
                 if(blobInfo.vanityAddress) {
                     if(blobInfo.isPurchase) {
-
+                        handleVanityPayment(payloadInfo, origin)
                     } else if(blobInfo.isActivation) {
                         handleVanityActivation(payloadInfo);
                     } else {
                         //what happens here?
+                        console.log("WE SHOULD NOT GO HERE");
                     }
                 }
             }
-                
 
             if(tmpInfo) {
                 if(payloadInfo && payloadInfo.application && payloadInfo.application.issued_user_token) {
@@ -296,8 +309,11 @@ async function handleWebhookRequest(request:any): Promise<any> {
     }
 }
 
-async function handleVanityPayment(payloadInfo: XummTypes.XummGetPayloadResponse) {
+async function handleVanityPayment(payloadInfo: XummTypes.XummGetPayloadResponse, origin: string) {
     //user has paid for this address. Add it to the users purchased addresses in the DB so it is reserved
+    let buyerAccount: string = payloadInfo.response.account;
+    let vanityBlob:any = payloadInfo.custom_meta.blob;
+    db.storeVanityPurchase(origin, await db.getAppIdForOrigin(origin), buyerAccount, vanityBlob.account);
 
 }
 
@@ -313,7 +329,7 @@ async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadRespo
             if(payloadInfo.custom_meta.blob) {
                 txResult.account = payloadInfo.response.account;
                 let vanityObject:any = payloadInfo.custom_meta.blob;
-                let vanityAddress:string = vanityObject ? vanityObject.account : null;
+                let vanityAddress:string = vanityObject ? vanityObject.vanityAddress : null;
 
                 console.log("handleVanityActivation ADDRESS: " + vanityAddress);
 

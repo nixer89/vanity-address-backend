@@ -17,6 +17,12 @@ export class Vanity {
         console.log("searchForVanityAddress: " + searchWord);
 
         let xHash:string = crypto.createHash('sha256').update("search"+searchWord+config.VANITY_BACKEND_SECRET).digest("hex");
+
+        console.log("xHash: " + xHash);
+
+        return {
+            result: ['rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB', 'rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB']
+        }
         
         let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"search/"+searchWord, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
 
@@ -31,6 +37,13 @@ export class Vanity {
         console.log("getSecretForVanityAddress: " + vanityAccount);
 
         let xHash:string = crypto.createHash('sha256').update("secret"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
+
+        console.log("xHash: " + xHash);
+
+        return {
+            account: 'rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB',
+            secret: 'snhLzVdLBHEGbsrRw8ruum9SQnkAU '
+        }
         
         let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret/"+vanityAccount, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
 
@@ -45,6 +58,11 @@ export class Vanity {
         console.log("purgeVanityAddress: " + vanityAccount);
         
         let xHash:string = crypto.createHash('sha256').update("purge"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
+
+        console.log("xHash: " + xHash);
+
+        return "OK";
+
         let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge/"+vanityAccount, {headers: {'x-hash': xHash}, method: "delete", agent: this.useProxy ? this.proxy : null});
 
         if(vanitySearchResponse && vanitySearchResponse.ok) {
@@ -133,7 +151,22 @@ export class Vanity {
         }
     }
 
-    async convertUSDtoXRP(usdAmount: number) {
+    async convertUSDtoXRP(usdAmount: number): Promise<string> {
+        //read current trustline limit and convert USD value to XRP value + round to one decimal XRP value
 
+        if(!this.xrplApi.isConnected())
+            this.xrplApi.connect();
+
+        let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
+        let usdRate:string = usdTrustLine[0].specification.limit;
+
+        let xrpAmount = -1;
+
+        if(usdRate && !Number.isNaN(usdRate))
+            xrpAmount = usdAmount * Number(usdRate) * 100;
+
+        xrpAmount = Math.round(xrpAmount) / 100
+
+        return JSON.stringify(xrpAmount * 1000000);
     }
 }
