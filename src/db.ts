@@ -1,6 +1,6 @@
 import { MongoClient, Collection, Cursor } from 'mongodb';
 import consoleStamp = require("console-stamp");
-import { AllowedOrigins, ApplicationApiKeys, UserIdCollection, FrontendIdPayloadCollection, XummIdPayloadCollection, XrplAccountPayloadCollection, StatisticsCollection } from './util/types';
+import { AllowedOrigins, ApplicationApiKeys, UserIdCollection, FrontendIdPayloadCollection, XummIdPayloadCollection, XrplAccountPayloadCollection, StatisticsCollection, PurchasedVanityAddresses } from './util/types';
 
 consoleStamp(console, { pattern: 'yyyy-mm-dd HH:MM:ss' });
 
@@ -15,6 +15,7 @@ export class DB {
     xrplAccountPayloadCollection:Collection<XrplAccountPayloadCollection> = null;
     tmpInfoTable:Collection = null;
     statisticsCollection:Collection<StatisticsCollection> = null;
+    purchasedVanityAddressCollection:Collection<PurchasedVanityAddresses> = null;
 
     allowedOriginCache:AllowedOrigins[] = null;
     applicationApiKeysCache:ApplicationApiKeys[] = null;
@@ -30,6 +31,7 @@ export class DB {
         this.xrplAccountPayloadCollection = await this.getNewDbModel("XrplAccountPayloadCollection");
         this.tmpInfoTable = await this.getNewDbModel("TmpInfoTable");
         this.statisticsCollection = await this.getNewDbModel("StatisticsCollection");
+        this.purchasedVanityAddressCollection = await this.getNewDbModel("PurchasedVanityAddressCollection");
         
         return Promise.resolve();
     }
@@ -45,77 +47,6 @@ export class DB {
         } catch(err) {
             console.log("[DB]: error saveUser");
             console.log(JSON.stringify(err));
-        }
-    }
-
-    async getXummId(applicationId:string, frontendUserId:string): Promise<string> {
-        try {
-            console.log("[DB]: getXummId: applicationId: " + applicationId +" frontendUserId: " + frontendUserId);
-            let mongoResult:UserIdCollection[] = await this.userIdCollection.find({applicationId: applicationId, frontendUserId: frontendUserId}).sort({created: -1}).limit(1).toArray();
-
-            if(mongoResult && mongoResult[0])
-                return mongoResult[0].xummUserId;
-            else
-                return null;
-        } catch(err) {
-            console.log("[DB]: error getXummId");
-            console.log(JSON.stringify(err));
-        }
-    }
-
-    async storePayloadForFrontendId(origin:string, referer:string, applicationId: string, frontendUserId:string, payloadId: string, payloadType: string): Promise<void> {
-        console.log("[DB]: storePayloadForFrontendId:" + " origin: " + origin + " referer: " + referer + " frontendUserId: " + frontendUserId + " payloadId: " + payloadId + " payloadType: " + payloadType);
-        try {
-            await this.frontendIdPayloadCollection.updateOne({origin: origin, referer: referer, applicationId: applicationId, frontendUserId: frontendUserId}, {
-                $addToSet: this.getSetToUpdate(payloadType, payloadId),
-                $currentDate: {
-                   "updated": { $type: "timestamp" }
-                }                
-              }, {upsert: true});
-
-            return Promise.resolve();
-        } catch(err) {
-            console.log("[DB]: error storePayloadForFrontendId");
-            console.log(JSON.stringify(err));
-        }
-    }
-
-    async getPayloadIdsByFrontendIdForApplication(applicationId: string, frontendUserId:string, payloadType: string): Promise<string[]> {
-        console.log("[DB]: getPayloadIdsByFrontendIdForApplication:" + " applicationId: " + applicationId + " frontendUserId: " + frontendUserId);
-        try {
-            let findResult:FrontendIdPayloadCollection[] = await this.frontendIdPayloadCollection.find({applicationId: applicationId, frontendUserId: frontendUserId}).toArray();
-
-            //console.log("findResult: " + JSON.stringify(findResult));
-            if(findResult && findResult.length > 0) {
-                let payloadsForUserAndOrigin:string[] = [];
-                for(let i = 0; i < findResult.length; i++){
-                    payloadsForUserAndOrigin = payloadsForUserAndOrigin.concat(this.getPayloadArrayForType(findResult[i], payloadType));
-                }
-
-                return payloadsForUserAndOrigin;
-            } else
-                return [];
-
-        } catch(err) {
-            console.log("[DB]: error getPayloadIdsByFrontendIdForApplication");
-            console.log(JSON.stringify(err));
-            return [];
-        }
-    }
-
-    async getPayloadIdsByFrontendIdForApplicationAndReferer(referer: string, applicationId: string, frontendUserId:string, payloadType: string): Promise<string[]> {
-        console.log("[DB]: getPayloadIdsByFrontendIdForApplicationAndReferer:" + " applicationId: " + applicationId + " referer: " + referer+ " frontendUserId: " + frontendUserId);
-        try {
-            let findResult:FrontendIdPayloadCollection = await this.frontendIdPayloadCollection.findOne({referer: referer, applicationId: applicationId, frontendUserId: frontendUserId});
-
-            if(findResult)
-                return this.getPayloadArrayForType(findResult, payloadType);
-            else
-                return [];
-        } catch(err) {
-            console.log("[DB]: error getPayloadIdsByFrontendIdForApplicationAndReferer");
-            console.log(JSON.stringify(err));
-            return [];
         }
     }
 
@@ -473,6 +404,47 @@ export class DB {
         } catch(err) {
             console.log("[DB]: error getTransactions");
             console.log(JSON.stringify(err));
+        }
+    }
+
+    async storeVanityPurchase(origin:string, applicationId: string, buyerAccount:string, vanityAccount: string): Promise<void> {
+        console.log("[DB]: storeVanityPurchase:" + " origin: " + origin + " buyerAccount: " + buyerAccount + " vanityAccount: " + vanityAccount);
+        try {
+            await this.purchasedVanityAddressCollection.updateOne({origin: origin, applicationId: applicationId, account: buyerAccount}, {
+                $addToSet: {vanityAddresses : vanityAccount},
+                $currentDate: {
+                   "updated": { $type: "timestamp" }
+                }                
+              }, {upsert: true});
+
+            return Promise.resolve();
+        } catch(err) {
+            console.log("[DB]: error storeVanityPurchase");
+            console.log(JSON.stringify(err));
+        }
+    }
+
+    async isVanityAddressAlreadyBought(applicationId: string, vanityAddress:string): Promise<boolean> {
+        console.log("[DB]: isVanityAddressAlreadyBought:" + " applicationId: " + applicationId + " vanityAddress: " + vanityAddress);
+        try {
+            let findResult:PurchasedVanityAddresses[] = await this.purchasedVanityAddressCollection.find({applicationId: applicationId}).toArray();
+
+            //console.log("findResult: " + JSON.stringify(findResult));
+            if(findResult && findResult.length > 0) {
+                let purchasedAddresses:string[] = [];
+                for(let i = 0; i < findResult.length; i++){
+                    purchasedAddresses = purchasedAddresses.concat(findResult[i].vanityAddresses);
+                }
+
+                return purchasedAddresses.includes(vanityAddress);
+            } else {
+                return false;
+            }
+
+        } catch(err) {
+            console.log("[DB]: error getPayloadIdsByFrontendIdForApplication");
+            console.log(JSON.stringify(err));
+            return false;
         }
     }
 

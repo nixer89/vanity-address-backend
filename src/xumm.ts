@@ -1,6 +1,6 @@
 import * as fetch from 'node-fetch';
 import * as config from './util/config';
-import * as HttpsProxyAgent from 'https-proxy-agent';
+import HttpsProxyAgent from 'https-proxy-agent';
 import * as DB from './db';
 import { XummTypes } from 'xumm-sdk';
 import { GenericBackendPostRequestOptions, AllowedOrigins } from './util/types';
@@ -58,7 +58,6 @@ export class Xumm {
         }
 
         
-        let frontendId:string;
         let xrplAccount:string;
         let pushDisabled:boolean = options && options.pushDisabled;
         let appId = await this.db.getAppIdForOrigin(origin);
@@ -71,13 +70,6 @@ export class Xumm {
         }
 
         try {
-            //get xummId by frontendId
-            if(options && (frontendId = options.frontendId)) {
-                let xummId:string = await this.db.getXummId(appId, options.frontendId);
-                if(!pushDisabled && xummId && xummId.trim().length > 0)
-                    payload.user_token = xummId; 
-            }
-
             //get xummId by xrplAccount
             if(options && (xrplAccount = options.xrplAccount) && !payload.user_token) {
 
@@ -127,24 +119,15 @@ export class Xumm {
         console.log("[XUMM]: submitPayload response: " + JSON.stringify(payloadResponse))
 
         //don't block the response
-        setTimeout(() => { this.storePayloadInfo(origin, referer, frontendId, appId, payload, payloadResponse) },2000);
+        setTimeout(() => { this.storePayloadInfo(origin, referer,  appId, payload, payloadResponse) },2000);
         
         return payloadResponse;
     }
 
-    async storePayloadInfo(origin:string, referer: string, frontendId: string, appId: string, payload: XummTypes.XummPostPayloadBodyJson, payloadResponse: XummTypes.XummPostPayloadResponse) {
-        //saving payloadId to frontendId
-        try {
-            if(frontendId && payloadResponse && payloadResponse.uuid) {
-                this.db.storePayloadForFrontendId(origin, referer, appId, frontendId, payloadResponse.uuid, payload.txjson.TransactionType);
-            }
-        } catch(err) {
-            console.log("Error saving PayloadForFrontendId");
-            console.log(JSON.stringify(err));
-        }
+    async storePayloadInfo(origin:string, referer: string, appId: string, payload: XummTypes.XummPostPayloadBodyJson, payloadResponse: XummTypes.XummPostPayloadResponse) {
         try {
             let payloadInfo:XummTypes.XummGetPayloadResponse = await this.getPayloadInfoByAppId(appId, payloadResponse.uuid);
-            this.db.saveTempInfo({origin: origin, referer: referer, frontendId: frontendId, applicationId: appId, xummUserId: payload.user_token, payloadId: payloadResponse.uuid, expires: payloadInfo.payload.expires_at});
+            this.db.saveTempInfo({origin: origin, referer: referer, applicationId: appId, xummUserId: payload.user_token, payloadId: payloadResponse.uuid, expires: payloadInfo.payload.expires_at});
         } catch(err) {
             console.log("Error saving TempInfo");
             console.log(JSON.stringify(err));
@@ -161,20 +144,6 @@ export class Xumm {
 
     async getPayloadInfoByAppId(applicationId:string, payload_id:string): Promise<XummTypes.XummGetPayloadResponse> {
         let payloadResponse:XummTypes.XummGetPayloadResponse = await this.callXumm(applicationId, "payload/"+payload_id, "GET");
-        //console.log("getPayloadInfo response: " + JSON.stringify(payloadResponse))
-        return payloadResponse;
-    }
-
-    async getPayloadForCustomIdentifierByOrigin(origin:string, custom_identifier: string): Promise<XummTypes.XummGetPayloadResponse> {
-        let appId:string = await this.db.getAppIdForOrigin(origin);
-        if(!appId)
-            return null;
-
-        return this.getPayloadForCustomIdentifierByAppId(appId, custom_identifier);
-    }
-
-    async getPayloadForCustomIdentifierByAppId(applicationId:string, custom_identifier: string): Promise<XummTypes.XummGetPayloadResponse> {
-        let payloadResponse:XummTypes.XummGetPayloadResponse = await this.callXumm(applicationId, "payload/ci/"+custom_identifier, "GET");
         //console.log("getPayloadInfo response: " + JSON.stringify(payloadResponse))
         return payloadResponse;
     }

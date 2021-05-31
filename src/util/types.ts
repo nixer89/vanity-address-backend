@@ -85,3 +85,12 @@ export interface StatisticsCollection {
     stats: any,
     updated: Date
 }
+
+export interface PurchasedVanityAddresses {
+    applicationId: string,
+    origin: string,
+    account: string,
+    vanityAddresses: string[],
+    pendingSearch: string[],
+    updated: Date
+}

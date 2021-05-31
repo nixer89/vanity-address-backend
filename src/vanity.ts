@@ -1,11 +1,17 @@
 import * as config from './util/config'
-import * as HttpsProxyAgent from 'https-proxy-agent';
+import HttpsProxyAgent from 'https-proxy-agent';
 import * as fetch from 'node-fetch';
+import { Prepare, RippleAPI } from 'ripple-lib';
 import * as crypto from 'crypto';
+import { FormattedSettings } from 'ripple-lib/dist/npm/common/types/objects/settings';
+import { TransactionValidation } from './util/types';
 
 export class Vanity {
     private proxy = new HttpsProxyAgent(config.PROXY_URL);
     private useProxy = config.USE_PROXY;
+
+    //initialize xrpl connection
+    xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
 
     async searchForVanityAddress(searchWord: string): Promise<any> {
         console.log("searchForVanityAddress: " + searchWord);
@@ -21,11 +27,25 @@ export class Vanity {
         }
     }
 
-    async purgeVanityAddress(xrplAddress: string): Promise<any> {
-        console.log("purgeVanityAddress: " + xrplAddress);
+    async getSecretForVanityAddress(vanityAccount: string): Promise<any> {
+        console.log("getSecretForVanityAddress: " + vanityAccount);
+
+        let xHash:string = crypto.createHash('sha256').update("secret"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
         
-        let xHash:string = crypto.createHash('sha256').update("purge"+xrplAddress+config.VANITY_BACKEND_SECRET).digest("hex");
-        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge/"+xrplAddress, {headers: {'x-hash': xHash}, method: "delete", agent: this.useProxy ? this.proxy : null});
+        let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret/"+vanityAccount, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
+
+        if(vanitySecretResponse && vanitySecretResponse.ok) {
+            return vanitySecretResponse.json();
+        } else {
+            throw "error calling getSecretForVanityAddress";
+        }
+    }
+
+    async purgeVanityAddress(vanityAccount: string): Promise<any> {
+        console.log("purgeVanityAddress: " + vanityAccount);
+        
+        let xHash:string = crypto.createHash('sha256').update("purge"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
+        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge/"+vanityAccount, {headers: {'x-hash': xHash}, method: "delete", agent: this.useProxy ? this.proxy : null});
 
         if(vanitySearchResponse && vanitySearchResponse.ok) {
             return vanitySearchResponse.json();
@@ -33,5 +53,87 @@ export class Vanity {
             console.log("NOT OKAY")
             throw "error calling purgeVanityAddress";
         }
+    }
+
+    async rekeyVanityAccount(vanityAddress: string, vanitySecret: string, regularKeyAccount: string, retry?: boolean): Promise<TransactionValidation> {
+        try {
+            console.log("preparing vanity address: " + vanityAddress);
+
+            if(!this.xrplApi.isConnected())
+                await this.xrplApi.connect();
+            
+            let regularKeySettings:FormattedSettings = {
+                regularKey: regularKeyAccount,
+            }
+
+            let preparedRegularKeySet:Prepare = await this.xrplApi.prepareSettings(vanityAddress, regularKeySettings);
+
+            console.log("finished preparing SetRegularKey: " + JSON.stringify(preparedRegularKeySet));
+
+            console.log("signing SetRegularKey");
+            
+            let signedRegularKeySet = await this.xrplApi.sign(preparedRegularKeySet.txJSON, vanitySecret);
+            
+            console.log("finished signing SetRegularKey: " + JSON.stringify(signedRegularKeySet));
+
+            console.log("submitting escrowFinish transaction")
+            let result = await this.xrplApi.submit(signedRegularKeySet.signedTransaction);
+            console.log("submitting result: " + JSON.stringify(result));
+                
+            if(!result || "tesSUCCESS" != result.resultCode) {
+                if(!retry)
+                    return this.rekeyVanityAccount(vanityAddress, vanitySecret, regularKeyAccount, true);
+                else
+                    return Promise.resolve({success: false, message: ("Account " + vanityAddress + " could not be rekeyed with " + regularKeyAccount), account: regularKeyAccount, testnet: false});
+            } else {
+                return Promise.resolve({success: true, message: ("Account " + vanityAddress + " rekeyed with: " + regularKeyAccount), txid: signedRegularKeySet.id, account: regularKeyAccount, testnet: false});
+            }
+        } catch(err) {
+            console.log(err);
+            return Promise.resolve({success: false, message: ("Account " + vanityAddress + " could not be rekeyed with " + regularKeyAccount), account: regularKeyAccount, testnet: false});
+        }
+    }
+
+    async disableMasterKey(vanityAddress: string, vanitySecret: string, retry?: boolean): Promise<TransactionValidation> {
+        try {
+            console.log("preparing vanity address: " + vanityAddress);
+
+            if(!this.xrplApi.isConnected())
+                await this.xrplApi.connect();
+            
+            let disableMasterKeySettings:FormattedSettings = {
+                disableMasterKey: true
+            }
+
+            let preparedDisableMasterKey:Prepare = await this.xrplApi.prepareSettings(vanityAddress, disableMasterKeySettings);
+
+            console.log("finished preparing AccountSet - disableMasterKey: " + JSON.stringify(preparedDisableMasterKey));
+
+            console.log("signing  AccountSet - disableMasterKey");
+            
+            let signedDisableMasterKey = await this.xrplApi.sign(preparedDisableMasterKey.txJSON, vanitySecret);
+            
+            console.log("finished signing  AccountSet - disableMasterKey: " + JSON.stringify(signedDisableMasterKey));
+
+            console.log("submitting  AccountSet - disableMasterKey transaction")
+            let result = await this.xrplApi.submit(signedDisableMasterKey.signedTransaction);
+            console.log("submitting result: " + JSON.stringify(result));
+                
+            if(!result || "tesSUCCESS" != result.resultCode) {
+                if(!retry)
+                    return this.disableMasterKey(vanityAddress, vanitySecret, true);
+                else
+                    return Promise.resolve({success: false, message: ("Can not disable master key of account: " + vanityAddress), account: null, testnet: false});
+            } else {
+                return Promise.resolve({success: true, message: ("Master Key disabled for account: " + vanityAddress), txid: signedDisableMasterKey.id , account: null, testnet: false});
+            }
+        } catch(err) {
+            console.log(err);
+            return Promise.resolve({success: false, message: ("Can not disable master key of account: " + vanityAddress), account: null, testnet: false});
+        }
+    }
+
+    async convertUSDtoXRP(usdAmount: number) {
+
     }
 }

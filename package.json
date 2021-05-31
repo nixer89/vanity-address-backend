@@ -35,6 +35,7 @@
     "mongodb": "^3.6.6",
     "node-fetch": "^2.6.1",
     "node-schedule": "^1.3.3",
+    "ripple-lib": "^1.9.4",
     "verify-xrpl-signature": "^0.1.0",
     "xumm-sdk": "^0.4.6"
   },

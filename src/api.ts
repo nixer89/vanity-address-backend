@@ -71,19 +71,6 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
-    fastify.get('/api/v1/platform/payload/ci/:custom_identifier', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.custom_identifier) {
-            reply.code(500).send('Please provide a custom_identifier. Calls without custom_identifier are not allowed');
-        } else {
-            try {
-                return xummBackend.getPayloadForCustomIdentifierByOrigin(request.headers.origin, request.params.custom_identifier);
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
     fastify.delete('/api/v1/platform/payload/:id', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
         if(!request.params.id) {
@@ -142,162 +129,6 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
-    fastify.get('/api/v1/initiate/simplePayment', async (request, reply) => {
-        console.log("simplePayment headers: " + JSON.stringify(request.headers));
-        console.log("simplePayment request.params: " + JSON.stringify(request.params));
-        //console.log("body: " + JSON.stringify(request.body));
-        try {
-            let genericPayloadOptions:GenericBackendPostRequestOptions = {};
-
-            let xummPayload:XummTypes.XummPostPayloadBodyJson = {
-                options: {
-                    expire: 5
-                },
-                txjson: {
-                    TransactionType: "Payment"
-                }
-            }
-            
-            try {
-                let parseResult = deviceDetector.parse(request.headers['user-agent'])
-                console.log("parsed user agent: " + JSON.stringify(parseResult));
-                if(parseResult && parseResult.device && parseResult.device.type) {
-                    genericPayloadOptions.web = 'desktop' === parseResult.device.type;
-                }
-            } catch(err) {
-                console.log("failed to parse user agent");
-                console.log(JSON.stringify(err));
-            }
-
-            let refererURL:string = request.headers.referer;
-            if(refererURL && refererURL.includes('?')) {
-                refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-            }
-
-            let payloadResponse = await xummBackend.submitPayload(xummPayload, request.headers.origin, refererURL, genericPayloadOptions);
-            return payloadResponse;
-        } catch(err) {
-            if('bithomp' == err) {
-                return { success : false, error: true, message: "We can not contact our XRP Ledger service provider and therefore won't be able to to verify your transaction. Please try again later!"};
-            }
-            else
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-        }
-    });
-
-    fastify.get('/api/v1/initiate/simplePayment/:deviceType', async (request, reply) => {
-        console.log("simplePayment/ headers: " + JSON.stringify(request.headers));
-        console.log("simplePayment/ request.params: " + JSON.stringify(request.params));
-        //console.log("body: " + JSON.stringify(request.body));
-        try {
-            let genericPayloadOptions:GenericBackendPostRequestOptions = {};
-
-            let xummPayload:XummTypes.XummPostPayloadBodyJson = {
-                options: {
-                    expire: 5
-                },
-                txjson: {
-                    TransactionType: "Payment"
-                }
-            }
-
-            if(request.params && request.params && (request.params.deviceType === 'app' || request.params.deviceType === 'web')) {
-                genericPayloadOptions.web = 'web' === request.params.deviceType;
-            } else {
-                try {
-                    let parseResult = deviceDetector.parse(request.headers['user-agent'])
-                    console.log("parsed user agent: " + JSON.stringify(parseResult));
-                    if(parseResult && parseResult.device && parseResult.device.type) {
-                        genericPayloadOptions.web = 'desktop' === parseResult.device.type;
-                    }
-                } catch(err) {
-                    console.log("failed to parse user agent");
-                    console.log(JSON.stringify(err));
-                }
-            }
-
-            let refererURL:string = request.headers.referer;
-            if(refererURL && refererURL.includes('?')) {
-                refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-            }
-
-            let payloadResponse = await xummBackend.submitPayload(xummPayload, request.headers.origin, refererURL, genericPayloadOptions);
-            return payloadResponse;
-        } catch(err) {
-            if('bithomp' == err)
-                return { success : false, error: true, message: "We can not contact our XRP Ledger service provider and therefore won't be able to to verify your transaction. Please try again later!"};
-            else
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-        }
-    });
-
-    fastify.get('/api/v1/initiate/simplePaymentRedirect', async (request, reply) => {
-        console.log("simplePayment headers: " + JSON.stringify(request.headers));
-        console.log("simplePayment request.params: " + JSON.stringify(request.params));
-        //console.log("body: " + JSON.stringify(request.body));
-        try {
-            let genericPayloadOptions:GenericBackendPostRequestOptions = {};
-
-            let xummPayload:XummTypes.XummPostPayloadBodyJson = {
-                options: {
-                    expire: 5
-                },
-                txjson: { 
-                    TransactionType: "Payment"
-                }
-            }
-            
-            try {
-                let parseResult = deviceDetector.parse(request.headers['user-agent'])
-                console.log("parsed user agent: " + JSON.stringify(parseResult));
-                if(parseResult && parseResult.device && parseResult.device.type) {
-                    genericPayloadOptions.web = 'desktop' === parseResult.device.type;
-                }
-            } catch(err) {
-                console.log("failed to parse user agent");
-                console.log(JSON.stringify(err));
-            }
-
-            let refererURL:string = request.headers.referer;
-            if(refererURL && refererURL.includes('?')) {
-                refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-            }
-
-            let payload:XummTypes.XummPostPayloadResponse = await xummBackend.submitPayload(xummPayload, request.headers.origin, refererURL, genericPayloadOptions);
-
-            if(payload && payload.next && payload.next.always) {
-                reply.redirect(307, payload.next.always);
-            } else {
-                reply.send({ success : false, error: true, message: 'Something went wrong. Please check your request'});
-            }
-            
-        } catch(err) {
-            if('bithomp' == err)
-                return { success : false, error: true, message: "We can not contact our XRP Ledger service provider and therefore won't be able to to verify your transaction. Please try again later!"};
-            else
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-        }
-    });
-
-    fastify.get('/api/v1/check/signinToValidatePayment/:signinPayloadId', async (request, reply) => {
-        console.log("headers: " + JSON.stringify(request.headers));
-        console.log("query: " + JSON.stringify(request.query));
-        if(!request.params.signinPayloadId) {
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        } else {
-            try {
-                let refererURL:string = request.query.referer ? request.query.referer : request.headers.referer;
-
-                if(refererURL && refererURL.includes('?')) {
-                    refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                }
-                
-                return special.checkSignInToValidatePayment(request.params.signinPayloadId, request.headers.origin, refererURL);
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
 
     fastify.get('/api/v1/check/payment/:payloadId', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
@@ -322,206 +153,6 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
-    fastify.get('/api/v1/check/payment/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'payment');
-
-                if(payloadInfo && special.successfullPaymentPayloadValidation(payloadInfo)) {
-                    let validation = await special.validatePaymentOnLedger(payloadInfo.response.txid, payloadInfo);
-
-                    return validation;
-                }
-
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-                
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/payment/referer/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await xummBackend.getPayloadInfoByOrigin(request.headers.origin, request.params.payloadId);
-
-                if(payloadInfo && special.successfullPaymentPayloadValidation(payloadInfo)) {
-                    let validation = await special.validatePaymentOnLedger(payloadInfo.response.txid, payloadInfo);
-
-                    return validation;
-                }
-
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-                
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/payment/referer/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let refererURL:string = request.query.referer ? request.query.referer : request.headers.referer;
-
-                if(refererURL && refererURL.includes('?')) {
-                    refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                }
-
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'payment', refererURL);
-
-                if(payloadInfo && special.successfullPaymentPayloadValidation(payloadInfo)) {
-                    let validation = await special.validatePaymentOnLedger(payloadInfo.response.txid, payloadInfo);
-
-                    return validation;
-                }
-
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-                
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/timed/payment/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await xummBackend.getPayloadInfoByOrigin(request.headers.origin, request.params.payloadId);
-
-                if(payloadInfo) {
-                    let refererURL:string = request.headers.referer;
-
-                    if(refererURL && refererURL.includes('?')) {
-                        refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                    }
-
-                    let validation = await special.validateTimedPaymentPayload(request.headers.origin, refererURL, payloadInfo);
-
-                    return validation;
-                }
-                
-                //we didn't go into the success:true -> so return false :)
-                return {success : false }
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/timed/payment/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'payment');
-
-                if(payloadInfo) {
-                    let refererURL:string = request.headers.referer;
-
-                    if(refererURL && refererURL.includes('?')) {
-                        refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                    }
-
-                    let validation = await special.validateTimedPaymentPayload(request.headers.origin, refererURL, payloadInfo);
-
-                    return validation;
-                }
-                
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/timed/payment/referer/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        //console.log("request query: " + JSON.stringify(request.query));
-        if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await xummBackend.getPayloadInfoByOrigin(request.headers.origin, request.params.payloadId);
-
-                if(payloadInfo) {
-                    let refererURL:string = request.query.referer ? request.query.referer : request.headers.referer;
-
-                    if(refererURL && refererURL.includes('?')) {
-                        refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                    }
-
-                    let validation = await special.validateTimedPaymentPayload(request.headers.origin, refererURL, payloadInfo);
-
-                    return validation;
-                }
-
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/timed/payment/referer/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        //console.log("request query: " + JSON.stringify(request.query));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let refererURL:string = request.query.referer ? request.query.referer : request.headers.referer;
-
-                if(refererURL && refererURL.includes('?')) {
-                    refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                }
-
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'payment', refererURL);
-
-                if(payloadInfo) {
-                    let validation = await special.validateTimedPaymentPayload(request.headers.origin, refererURL, payloadInfo);
-
-                    return validation;
-                }
-
-                //we didn't go into the success:true -> so return false :)
-                return {success : false}
-
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
     fastify.get('/api/v1/check/signin/:payloadId', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
         if(!request.params.payloadId)
@@ -532,57 +163,6 @@ export async function registerRoutes(fastify, opts, next) {
 
                 if(payloadInfo && special.successfullSignInPayloadValidation(payloadInfo)) {
                     return {success: true, account: payloadInfo.response.account}
-                }
-                
-                //we didn't go into the success:true -> so return false :)
-                return {success : false, account: payloadInfo.response.account }
-
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/signin/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'signin');
-
-                if(payloadInfo && special.successfullSignInPayloadValidation(payloadInfo)) {
-                    return {success: true, account: payloadInfo.response.account }
-                }
-                
-                //we didn't go into the success:true -> so return false :)
-                return {success : false, account: payloadInfo.response.account }
-
-            } catch {
-                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
-            }
-        }
-    });
-
-    fastify.get('/api/v1/check/signin/referer/:frontendUserId/:payloadId', async (request, reply) => {
-        //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.frontendUserId)
-            reply.code(500).send('Please provide a frontendUserId. Calls without frontendUserId are not allowed');
-        else if(!request.params.payloadId)
-            reply.code(500).send('Please provide a payload id. Calls without payload id are not allowed');
-        else {
-            try {
-                let refererURL:string = request.query.referer ? request.query.referer : request.headers.referer;
-                if(refererURL && refererURL.includes('?')) {
-                    refererURL = refererURL.substring(0, refererURL.indexOf('?'));
-                }
-
-                let payloadInfo:XummTypes.XummGetPayloadResponse = await special.getPayloadInfoForFrontendId(request.headers.origin, request.params, 'signin', refererURL);
-
-                if(payloadInfo && special.successfullSignInPayloadValidation(payloadInfo)) {
-                    return {success: true, account: payloadInfo.response.account }
                 }
                 
                 //we didn't go into the success:true -> so return false :)
@@ -676,8 +256,20 @@ async function handleWebhookRequest(request:any): Promise<any> {
             }
 
             //check escrow payment
-            if(payloadInfo && payloadInfo.payload && payloadInfo.payload.tx_type && payloadInfo.payload.tx_type.toLowerCase() == 'payment' && payloadInfo.custom_meta && payloadInfo.custom_meta.blob)
-                handleEscrowPayment(payloadInfo,origin);
+            if(payloadInfo && payloadInfo.payload && payloadInfo.payload.tx_type && payloadInfo.payload.tx_type.toLowerCase() == 'payment' && payloadInfo.custom_meta && payloadInfo.custom_meta.blob) {
+                let blobInfo:any = payloadInfo.custom_meta.blob;
+
+                if(blobInfo.vanityAddress) {
+                    if(blobInfo.isPurchase) {
+
+                    } else if(blobInfo.isActivation) {
+                        handleVanityActivation(payloadInfo);
+                    } else {
+                        //what happens here?
+                    }
+                }
+            }
+                
 
             if(tmpInfo) {
                 if(payloadInfo && payloadInfo.application && payloadInfo.application.issued_user_token) {
@@ -704,36 +296,57 @@ async function handleWebhookRequest(request:any): Promise<any> {
     }
 }
 
-async function handleEscrowPayment(payloadInfo: XummTypes.XummGetPayloadResponse, origin?: string) {
-    console.log("escrow/validatepayment PAYLOAD: " + JSON.stringify(payloadInfo));
+async function handleVanityPayment(payloadInfo: XummTypes.XummGetPayloadResponse) {
+    //user has paid for this address. Add it to the users purchased addresses in the DB so it is reserved
+
+}
+
+async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadResponse) {
+    console.log("handleVanityActivation PAYLOAD: " + JSON.stringify(payloadInfo));
 
     if(payloadInfo && special.successfullPaymentPayloadValidation(payloadInfo)) {
         let txResult:TransactionValidation = await special.validatePaymentOnLedger(payloadInfo.response.txid, payloadInfo);
 
-        console.log("escrow/validatepayment TXRESULT: " + JSON.stringify(txResult));
+        console.log("handleVanityActivation TXRESULT: " + JSON.stringify(txResult));
 
         if(txResult) {
             if(payloadInfo.custom_meta.blob) {
                 txResult.account = payloadInfo.response.account;
-                let escrow:any = payloadInfo.custom_meta.blob;
+                let vanityObject:any = payloadInfo.custom_meta.blob;
+                let vanityAddress:string = vanityObject ? vanityObject.account : null;
 
-                console.log("escrow/validatepayment ESCROW: " + JSON.stringify(escrow));
+                console.log("handleVanityActivation ADDRESS: " + vanityAddress);
 
-                if(escrow && txResult.success && txResult.account == escrow.account && ((txResult.testnet == escrow.testnet) || (escrow.testnet && !txResult.testnet))) {
-                    //insert escrow
-                    let addEscrow:any = null//await special.addEscrow(escrow);
-
-                    console.log("Add escrow: " + JSON.stringify(addEscrow));
-
-                    if(addEscrow && addEscrow.success)
-                        console.log("Escrow stored!");
-                    else
-                        console.log("Escrow could not be stored. Please contact the website owner!");
+                if(vanityAddress && txResult.success) {
+                    //retrieve family seed
+                    let vanitySecret:string = await vanity.getSecretForVanityAddress(vanityAddress);
+                    //rekey account.
+                    let regularKeyResult:TransactionValidation = await vanity.rekeyVanityAccount(vanityAddress, vanitySecret, payloadInfo.response.account);
+                    if(regularKeyResult.success && regularKeyResult.txid) {
+                        //timeout to wait for validated ledger
+                        setTimeout(async () => {
+                            //regular key tx was submitted, check for result!
+                            let regularKeySubmitResult:TransactionValidation = await special.validateXRPLTransaction(regularKeyResult.txid);
+                            if(regularKeySubmitResult && regularKeySubmitResult.txid == regularKeyResult.txid) {
+                                let disableMasterKeyResult = await vanity.disableMasterKey(vanityAddress, vanitySecret);
+                                if(disableMasterKeyResult.success) {
+                                    console.log("vanity address " + vanityAddress + " successfully transfered");
+                                } else {
+                                    console.log("could not disable master key for vanity account: " +vanityAddress);
+                                }
+                            } else {
+                                console.log("vanity account " + vanityAddress + " could not be rekeyed (transaction could not be found on ledger)")
+                            }
+                        }, 4000);
+                        
+                    } else {
+                        console.log("regular key could not be changed for vanity address " + vanityAddress)
+                    }
                 } else {
-                    console.log("The escrow account does not equal the payment account or you submitted the transaction on a different network (Main/Test).");
+                    console.log("Vanity payment not successfull or vanity account not found");
                 }
             } else {
-                console.log("The transaction could not be matched to an escrow. Please contact the website owner if you think that is wrong!")
+                console.log("The transaction does not have the vanity address attached!")
             }
         } else {
             console.log("Transaction could not be verified!");
