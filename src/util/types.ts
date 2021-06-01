@@ -94,3 +94,12 @@ export interface PurchasedVanityAddresses {
     pendingSearch: string[],
     updated: Date
 }
+
+export interface SearchResult {
+    result: string[]
+}
+
+export interface AddressAndSecret {
+    vanityAddress: string,
+    vanitySecret: string
+}

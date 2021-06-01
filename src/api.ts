@@ -6,7 +6,7 @@ import * as config from './util/config';
 import consoleStamp = require("console-stamp");
 import { XummTypes } from 'xumm-sdk';
 import DeviceDetector = require("device-detector-js");
-import { GenericBackendPostRequestOptions, TransactionValidation } from './util/types';
+import { AddressAndSecret, GenericBackendPostRequestOptions, SearchResult, TransactionValidation } from './util/types';
 
 consoleStamp(console, { pattern: 'yyyy-mm-dd HH:MM:ss' });
 
@@ -206,15 +206,15 @@ export async function registerRoutes(fastify, opts, next) {
             reply.code(500).send('Please provide a word to search for. Calls without search word are not allowed');
         } else {
             try {
-                let searchResult:string[] = await vanity.searchForVanityAddress(request.params.searchWord);
+                let searchResult:SearchResult = await vanity.searchForVanityAddress(request.params.searchWord);
                 let alreadyBought = await db.getPurchasedVanityAddress();
-                
+
                 console.log("alreadyBought addresses: " + JSON.stringify(alreadyBought));
 
-                if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.length > 0) {
+                if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.result && searchResult.result.length > 0) {
                     //check
                     console.log("checking search result: " + JSON.stringify(searchResult));
-                    searchResult = searchResult.filter(address => !alreadyBought.includes(address));
+                    searchResult.result = searchResult.result.filter(address => !alreadyBought.includes(address));
                     console.log("returning search result: " + JSON.stringify(searchResult));
                     return searchResult;
                 } else {
@@ -349,16 +349,16 @@ async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadRespo
 
                 if(vanityAddress && txResult.success) {
                     //retrieve family seed
-                    let vanityAccount:any = await vanity.getSecretForVanityAddress(vanityAddress);
+                    let vanityAccount:AddressAndSecret = await vanity.getSecretForVanityAddress(vanityAddress);
                     //rekey account.
-                    let regularKeyResult:TransactionValidation = await vanity.rekeyVanityAccount(vanityAddress, vanityAccount.secret, payloadInfo.response.account);
+                    let regularKeyResult:TransactionValidation = await vanity.rekeyVanityAccount(vanityAddress, vanityAccount.vanitySecret, payloadInfo.response.account);
                     if(regularKeyResult.success && regularKeyResult.txid) {
                         //timeout to wait for validated ledger
                         setTimeout(async () => {
                             //regular key tx was submitted, check for result!
                             let regularKeySubmitResult:TransactionValidation = await special.validateXRPLTransaction(regularKeyResult.txid);
                             if(regularKeySubmitResult && regularKeySubmitResult.txid == regularKeyResult.txid) {
-                                let disableMasterKeyResult = await vanity.disableMasterKey(vanityAddress, vanityAccount.secret);
+                                let disableMasterKeyResult = await vanity.disableMasterKey(vanityAddress, vanityAccount.vanitySecret);
                                 if(disableMasterKeyResult.success) {
                                     console.log("vanity address " + vanityAddress + " successfully transfered. Deleting it from database.");
                                     console.log("deleting vanity address result: " + (await vanity.purgeVanityAddress(vanityAddress)));

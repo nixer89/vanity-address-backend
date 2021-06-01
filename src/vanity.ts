@@ -4,7 +4,7 @@ import * as fetch from 'node-fetch';
 import { Prepare, RippleAPI } from 'ripple-lib';
 import * as crypto from 'crypto';
 import { FormattedSettings } from 'ripple-lib/dist/npm/common/types/objects/settings';
-import { TransactionValidation } from './util/types';
+import { AddressAndSecret, SearchResult, TransactionValidation } from './util/types';
 
 export class Vanity {
     private proxy = new HttpsProxyAgent(config.PROXY_URL);
@@ -19,7 +19,7 @@ export class Vanity {
     //initialize xrpl connection
     xrplApi = new RippleAPI({server: config.XRPL_SERVER});
 
-    async searchForVanityAddress(searchWord: string): Promise<any> {
+    async searchForVanityAddress(searchWord: string): Promise<SearchResult> {
         console.log("searchForVanityAddress: " + searchWord);
 
         let xHash:string = crypto.createHash('sha256').update("search"+searchWord+config.VANITY_BACKEND_SECRET).digest("hex");
@@ -48,7 +48,7 @@ export class Vanity {
         }
     }
 
-    async getSecretForVanityAddress(vanityAccount: string): Promise<any> {
+    async getSecretForVanityAddress(vanityAccount: string): Promise<AddressAndSecret> {
         console.log("getSecretForVanityAddress: " + vanityAccount);
 
         let xHash:string = crypto.createHash('sha256').update("secret"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
@@ -64,8 +64,8 @@ export class Vanity {
         ));
 
         return {
-            account: vanityAccount,
-            secret: secret
+            vanityAddress: vanityAccount,
+            vanitySecret: secret
         }
         
         let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret/"+vanityAccount, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
@@ -77,7 +77,7 @@ export class Vanity {
         }
     }
 
-    async purgeVanityAddress(vanityAccount: string): Promise<any> {
+    async purgeVanityAddress(vanityAccount: string): Promise<string> {
         console.log("purgeVanityAddress: " + vanityAccount);
         
         let xHash:string = crypto.createHash('sha256').update("purge"+vanityAccount+config.VANITY_BACKEND_SECRET).digest("hex");
