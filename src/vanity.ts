@@ -13,8 +13,8 @@ export class Vanity {
     testData:Map<string, string> = new Map([
         ['rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB','snhLzVdLBHEGbsrRw8ruum9SQnkAU'],
         ['rJQPWL2Xep1qAdg2Fi2n5srEFamKTKi3ji','sn9u4hKEX8Tfbc6ojpcfTHTeDZ8Mr'],
-        ['rPMzeN7FET5iAuRCGibyXnsdXgw81MnV3s','ssYPnCMxX3CHwahM8rRf7oT7PJNfm '],
-        ['rakr5TMixbetStutc5yf6a1mYcuVoAUjk7','shFD5GK9dCUwFvhRDuopUmd4TrSg2  ']
+        ['rPMzeN7FET5iAuRCGibyXnsdXgw81MnV3s','ssYPnCMxX3CHwahM8rRf7oT7PJNfm'],
+        ['rakr5TMixbetStutc5yf6a1mYcuVoAUjk7','shFD5GK9dCUwFvhRDuopUmd4TrSg2']
     ])
     //initialize xrpl connection
     xrplApi = new RippleAPI({server: config.XRPL_SERVER});
@@ -103,7 +103,7 @@ export class Vanity {
 
     async rekeyVanityAccount(vanityAddress: string, vanitySecret: string, regularKeyAccount: string, retry?: boolean): Promise<TransactionValidation> {
         try {
-            console.log("preparing vanity address: " + vanityAddress);
+            console.log("preparing vanity address: " + vanityAddress + " with secret: " + vanitySecret + " and regular key: " + regularKeyAccount);
 
             console.log("api is connected: " + this.xrplApi.isConnected());
 
@@ -154,7 +154,7 @@ export class Vanity {
 
     async disableMasterKey(vanityAddress: string, vanitySecret: string, retry?: boolean): Promise<TransactionValidation> {
         try {
-            console.log("preparing vanity address: " + vanityAddress);
+            console.log("preparing vanity address: " + vanityAddress + " with secret: " + vanitySecret);
 
             console.log("api is connected: " + this.xrplApi.isConnected());
 
