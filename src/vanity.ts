@@ -17,7 +17,7 @@ export class Vanity {
         ['rakr5TMixbetStutc5yf6a1mYcuVoAUjk7','shFD5GK9dCUwFvhRDuopUmd4TrSg2  ']
     ])
     //initialize xrpl connection
-    xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+    xrplApi = new RippleAPI({server: config.XRPL_SERVER});
 
     async searchForVanityAddress(searchWord: string): Promise<any> {
         console.log("searchForVanityAddress: " + searchWord);
@@ -110,7 +110,7 @@ export class Vanity {
             if(!this.xrplApi.isConnected()) {
                 try {
                     console.log("connecting...")
-                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER});
                     await this.xrplApi.connect();
                     console.log("api is connected: " + this.xrplApi.isConnected());
                 } catch(err) {
@@ -161,7 +161,7 @@ export class Vanity {
             if(!this.xrplApi.isConnected()) {
                 try {
                     console.log("connecting...")
-                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER});
                     await this.xrplApi.connect();
                     console.log("api is connected: " + this.xrplApi.isConnected());
                 } catch(err) {
@@ -210,7 +210,7 @@ export class Vanity {
         if(!this.xrplApi.isConnected()) {
             try {
                 console.log("connecting...")
-                this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+                this.xrplApi = new RippleAPI({server: config.XRPL_SERVER});
                 await this.xrplApi.connect();
                 console.log("api is connected: " + this.xrplApi.isConnected());
             } catch(err) {
