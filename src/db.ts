@@ -426,7 +426,7 @@ export class DB {
     async getPurchasedVanityAddress(): Promise<string[]> {
         console.log("[DB]: getPurchasedVanityAddress");
         try {
-            let findResult:PurchasedVanityAddresses[] = await this.purchasedVanityAddressCollection.find().toArray();
+            let findResult:PurchasedVanityAddresses[] = await this.purchasedVanityAddressCollection.find({}).toArray();
 
             //console.log("findResult: " + JSON.stringify(findResult));
             if(findResult && findResult.length > 0) {

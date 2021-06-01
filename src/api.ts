@@ -208,6 +208,8 @@ export async function registerRoutes(fastify, opts, next) {
             try {
                 let searchResult:string[] = await vanity.searchForVanityAddress(request.params.searchWord);
                 let alreadyBought = await db.getPurchasedVanityAddress();
+                
+                console.log("alreadyBought addresses: " + JSON.stringify(alreadyBought));
 
                 if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.length > 0) {
                     //check
@@ -349,16 +351,17 @@ async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadRespo
                     //retrieve family seed
                     let vanityAccount:any = await vanity.getSecretForVanityAddress(vanityAddress);
                     //rekey account.
-                    let regularKeyResult:TransactionValidation = await vanity.rekeyVanityAccount(vanityAddress.trim(), vanityAccount.secret.trim(), payloadInfo.response.account.trim());
+                    let regularKeyResult:TransactionValidation = await vanity.rekeyVanityAccount(vanityAddress, vanityAccount.secret, payloadInfo.response.account);
                     if(regularKeyResult.success && regularKeyResult.txid) {
                         //timeout to wait for validated ledger
                         setTimeout(async () => {
                             //regular key tx was submitted, check for result!
                             let regularKeySubmitResult:TransactionValidation = await special.validateXRPLTransaction(regularKeyResult.txid);
                             if(regularKeySubmitResult && regularKeySubmitResult.txid == regularKeyResult.txid) {
-                                let disableMasterKeyResult = await vanity.disableMasterKey(vanityAddress.trim(), vanityAccount.secret.trim());
+                                let disableMasterKeyResult = await vanity.disableMasterKey(vanityAddress, vanityAccount.secret);
                                 if(disableMasterKeyResult.success) {
-                                    console.log("vanity address " + vanityAddress + " successfully transfered");
+                                    console.log("vanity address " + vanityAddress + " successfully transfered. Deleting it from database.");
+                                    console.log("deleting vanity address result: " + (await vanity.purgeVanityAddress(vanityAddress)));
                                 } else {
                                     console.log("could not disable master key for vanity account: " +vanityAddress);
                                 }
