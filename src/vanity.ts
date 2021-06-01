@@ -228,7 +228,7 @@ export class Vanity {
         let xrpAmount = -1;
 
         if(usdRate && !Number.isNaN(usdRate))
-            xrpAmount = usdAmount * Number(usdRate) * 100;
+            xrpAmount = usdAmount / Number(usdRate) * 100;
 
         xrpAmount = Math.round(xrpAmount) / 100;
 
