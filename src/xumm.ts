@@ -232,9 +232,11 @@ export class Xumm {
         //console.log("[XUMM]: originProperties: " + JSON.stringify(originProperties));
 
         //for payments -> set destination account in backend
-        if(payload.txjson && payload.txjson.TransactionType && payload.txjson.TransactionType.trim().toLowerCase() === 'payment' && !options.issuing && !options.isRawTrx) {
+        if(payload.txjson && payload.txjson.TransactionType && payload.txjson.TransactionType.trim().toLowerCase() === 'payment') {
 
-            if(originProperties.destinationAccount) {
+            let vanityData:any = payload.custom_meta.blob;
+
+            if(vanityData.isPurchase && originProperties.destinationAccount) {
                 if(originProperties.destinationAccount[referer]) {
                     payload.txjson.Destination = originProperties.destinationAccount[referer].account;
                     if(originProperties.destinationAccount[referer].tag && Number.isInteger(originProperties.destinationAccount[referer].tag))
@@ -256,9 +258,10 @@ export class Xumm {
                     else
                         delete payload.txjson.DestinationTag;
                 }
+            } else if(vanityData.isActivation) {
+                //we are activation. set the vanity address as destination account!
+                payload.txjson.Destination = vanityData.vanityAddress;
             }
-
-            let vanityData:any = payload.custom_meta.blob;
             
             if(vanityData.isPurchase && originProperties.fixAmount) {
                 console.log("calculating fix amount");
@@ -283,65 +286,6 @@ export class Xumm {
 
             console.log("payload.txjson.Amount: " + JSON.stringify(payload.txjson.Amount));
         }
-
-        //handle return URLs
-        let foundReturnUrls:boolean = false;
-
-        if(options.web != undefined && originProperties.return_urls) {
-
-            if(!payload.options)
-                payload.options = {};
-
-            if(!payload.options.return_url)
-                payload.options.return_url = {};
-
-            for(let i = 0; i < originProperties.return_urls.length; i++) {
-                if(originProperties.return_urls[i].from === referer) {
-                    foundReturnUrls = true;
-
-                    if(options.web)
-                        payload.options.return_url.web = originProperties.return_urls[i].to_web+(options.signinToValidate?"&signinToValidate=true":"");
-                    else
-                        payload.options.return_url.app = originProperties.return_urls[i].to_app+(options.signinToValidate?"&signinToValidate=true":"");
-                }
-            }
-
-            //check if there is a default return path: 'origin/*'
-            if(!foundReturnUrls && originProperties.return_urls.length > 0) {
-                console.log("checking for wildcard");
-                let filtered:any[] = originProperties.return_urls.filter(url => url.from === (origin+'/*'));
-                console.log("found: " + JSON.stringify(filtered));
-
-                if(filtered.length > 0) {
-                    foundReturnUrls = true;
-
-                    if(options.web)
-                        payload.options.return_url.web = filtered[0].to_web+(options.signinToValidate?"&signinToValidate=true":"");
-                    else
-                        payload.options.return_url.app = filtered[0].to_app+(options.signinToValidate?"&signinToValidate=true":"");
-                }
-            }
-
-            //check if there is a default return path: '*'
-            if(!foundReturnUrls && originProperties.return_urls.length > 0) {
-                console.log("checking for wildcard");
-                let filtered:any[] = originProperties.return_urls.filter(url => url.from === ('*'));
-                console.log("found: " + JSON.stringify(filtered));
-
-                if(filtered.length > 0) {
-                    foundReturnUrls = true;
-
-                    if(options.web)
-                        payload.options.return_url.web = filtered[0].to_web+(options.signinToValidate?"&signinToValidate=true":"");
-                    else
-                        payload.options.return_url.app = filtered[0].to_app+(options.signinToValidate?"&signinToValidate=true":"");
-                }
-            }
-        }
-
-        //security measure: delete return URLs for unknown referer
-        if(!foundReturnUrls && payload.options)
-            delete payload.options.return_url;
 
         return payload;
     }
