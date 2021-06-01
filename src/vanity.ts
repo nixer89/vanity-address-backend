@@ -183,7 +183,7 @@ export class Vanity {
         //read current trustline limit and convert USD value to XRP value + round to one decimal XRP value
 
         if(!this.xrplApi.isConnected())
-            this.xrplApi.connect();
+            await this.xrplApi.connect();
 
         let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
         let usdRate:string = usdTrustLine[0].specification.limit;
