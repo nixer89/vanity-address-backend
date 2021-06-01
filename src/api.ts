@@ -206,7 +206,19 @@ export async function registerRoutes(fastify, opts, next) {
             reply.code(500).send('Please provide a word to search for. Calls without search word are not allowed');
         } else {
             try {
-                return vanity.searchForVanityAddress(request.params.searchWord);
+                let searchResult:string[] = await vanity.searchForVanityAddress(request.params.searchWord);
+                let alreadyBought = await db.getPurchasedVanityAddress();
+
+                if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.length > 0) {
+                    //check
+                    console.log("checking search result: " + JSON.stringify(searchResult));
+                    searchResult = searchResult.filter(address => !alreadyBought.includes(address));
+                    console.log("returning search result: " + JSON.stringify(searchResult));
+                    return searchResult;
+                } else {
+                    //nothing to check
+                    return searchResult;
+                }
             } catch {
                 return { success : false, error: true, message: 'Something went wrong. Please check your request'};
             }
