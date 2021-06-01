@@ -265,7 +265,7 @@ export class Xumm {
 
                 if(originProperties.fixAmount[vanityLength]) {
                     usdAmount = originProperties.fixAmount[vanityLength];
-                    payload.txjson.Amount = this.vanity.convertUSDtoXRP(usdAmount);
+                    payload.txjson.Amount = await this.vanity.convertUSDtoXRP(usdAmount);
                 } else {
                     throw "Invalid amount or vanity length";
                 }
