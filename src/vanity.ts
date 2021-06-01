@@ -105,8 +105,20 @@ export class Vanity {
         try {
             console.log("preparing vanity address: " + vanityAddress);
 
-            if(!this.xrplApi.isConnected())
-                await this.xrplApi.connect();
+            console.log("api is connected: " + this.xrplApi.isConnected());
+
+            if(!this.xrplApi.isConnected()) {
+                try {
+                    console.log("connecting...")
+                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+                    await this.xrplApi.connect();
+                    console.log("api is connected: " + this.xrplApi.isConnected());
+                } catch(err) {
+                    console.log("api is connected: " + this.xrplApi.isConnected());
+                    console.log(err);
+                }
+            }
+                
             
             let regularKeySettings:FormattedSettings = {
                 regularKey: regularKeyAccount,
@@ -144,8 +156,19 @@ export class Vanity {
         try {
             console.log("preparing vanity address: " + vanityAddress);
 
-            if(!this.xrplApi.isConnected())
-                await this.xrplApi.connect();
+            console.log("api is connected: " + this.xrplApi.isConnected());
+
+            if(!this.xrplApi.isConnected()) {
+                try {
+                    console.log("connecting...")
+                    this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
+                    await this.xrplApi.connect();
+                    console.log("api is connected: " + this.xrplApi.isConnected());
+                } catch(err) {
+                    console.log("api is connected: " + this.xrplApi.isConnected());
+                    console.log(err);
+                }
+            }
             
             let disableMasterKeySettings:FormattedSettings = {
                 disableMasterKey: true
@@ -183,17 +206,18 @@ export class Vanity {
         //read current trustline limit and convert USD value to XRP value + round to one decimal XRP value
 
         console.log("api is connected: " + this.xrplApi.isConnected());
+
         if(!this.xrplApi.isConnected()) {
-            console.log("connecting...")
             try {
+                console.log("connecting...")
+                this.xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
                 await this.xrplApi.connect();
+                console.log("api is connected: " + this.xrplApi.isConnected());
             } catch(err) {
+                console.log("api is connected: " + this.xrplApi.isConnected());
                 console.log(err);
             }
-
-        }
-
-        console.log("api is connected: " + this.xrplApi.isConnected());
+        }      
 
         let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
         console.log("usdTrustLine: " + JSON.stringify(usdTrustLine));
