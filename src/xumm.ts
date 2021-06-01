@@ -257,8 +257,10 @@ export class Xumm {
                         delete payload.txjson.DestinationTag;
                 }
             }
+
+            let vanityData:any = payload.custom_meta.blob;
             
-            if(originProperties.fixAmount) {
+            if(vanityData.isPurchase && originProperties.fixAmount) {
                 console.log("calculating fix amount");
                 let usdAmount = -1;
                 let vanityData:any = payload.custom_meta.blob;
@@ -269,11 +271,17 @@ export class Xumm {
                     console.log("usdAmount: " + usdAmount);
                     payload.txjson.Amount = await this.vanity.convertUSDtoXRP(usdAmount);
 
-                    console.log("payload.txjson.Amount: " + JSON.stringify(payload.txjson.Amount));
                 } else {
                     throw "Invalid amount or vanity length";
                 }
+            } else if(vanityData.isActivation) {
+                payload.txjson.Amount = "20001000";
+            } else {
+                //something weired happened.
+                throw "Invalid data, can not create Amount field";
             }
+
+            console.log("payload.txjson.Amount: " + JSON.stringify(payload.txjson.Amount));
         }
 
         //handle return URLs
