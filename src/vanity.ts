@@ -185,7 +185,11 @@ export class Vanity {
         console.log("api is connected: " + this.xrplApi.isConnected());
         if(!this.xrplApi.isConnected()) {
             console.log("connecting...")
-            await this.xrplApi.connect();
+            try {
+                await this.xrplApi.connect();
+            } catch(err) {
+                console.log(err);
+            }
 
         }
 
