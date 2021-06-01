@@ -259,13 +259,17 @@ export class Xumm {
             }
             
             if(originProperties.fixAmount) {
+                console.log("calculating fix amount");
                 let usdAmount = -1;
                 let vanityData:any = payload.custom_meta.blob;
                 let vanityLength:string = vanityData.vanityLength;
 
                 if(originProperties.fixAmount[vanityLength]) {
                     usdAmount = originProperties.fixAmount[vanityLength];
+                    console.log("usdAmount: " + usdAmount);
                     payload.txjson.Amount = await this.vanity.convertUSDtoXRP(usdAmount);
+
+                    console.log("payload.txjson.Amount: " + JSON.stringify(payload.txjson.Amount));
                 } else {
                     throw "Invalid amount or vanity length";
                 }
