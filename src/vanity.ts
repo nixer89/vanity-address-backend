@@ -182,8 +182,14 @@ export class Vanity {
     async convertUSDtoXRP(usdAmount: number): Promise<string> {
         //read current trustline limit and convert USD value to XRP value + round to one decimal XRP value
 
-        if(!this.xrplApi.isConnected())
+        console.log("api is connected: " + this.xrplApi.isConnected());
+        if(!this.xrplApi.isConnected()) {
+            console.log("connecting...")
             await this.xrplApi.connect();
+
+        }
+
+        console.log("api is connected: " + this.xrplApi.isConnected());
 
         let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
         console.log("usdTrustLine: " + JSON.stringify(usdTrustLine));
