@@ -10,6 +10,12 @@ export class Vanity {
     private proxy = new HttpsProxyAgent(config.PROXY_URL);
     private useProxy = config.USE_PROXY;
 
+    testData:Map<string, string> = new Map([
+        ['rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB','snhLzVdLBHEGbsrRw8ruum9SQnkAU'],
+        ['rJQPWL2Xep1qAdg2Fi2n5srEFamKTKi3ji','sn9u4hKEX8Tfbc6ojpcfTHTeDZ8Mr'],
+        ['rPMzeN7FET5iAuRCGibyXnsdXgw81MnV3s','ssYPnCMxX3CHwahM8rRf7oT7PJNfm '],
+        ['rakr5TMixbetStutc5yf6a1mYcuVoAUjk7','shFD5GK9dCUwFvhRDuopUmd4TrSg2  ']
+    ])
     //initialize xrpl connection
     xrplApi = new RippleAPI({server: config.XRPL_SERVER, proxy: config.USE_PROXY ? config.PROXY_URL : null});
 
@@ -20,8 +26,17 @@ export class Vanity {
 
         console.log("xHash: " + xHash);
 
+        let returnValue:string[] = [];
+        this.testData.forEach((value, key, map) => {
+            returnValue.push(key);
+        });
+
+        console.log("searchForVanityAddress returning: " + JSON.stringify({
+            result: returnValue
+        }));
+
         return {
-            result: ['rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB', 'rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB']
+            result: returnValue
         }
         
         let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"search/"+searchWord, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
@@ -40,9 +55,17 @@ export class Vanity {
 
         console.log("xHash: " + xHash);
 
+        let secret:string = this.testData.get(vanityAccount);
+
+        console.log("getSecretForVanityAddress returning: " + JSON.stringify({
+            account: vanityAccount,
+            secret: secret
+        }
+        ));
+
         return {
-            account: 'rKqazJ6NcY5PMyBRv4u36BUjuLYFUg5gQB',
-            secret: 'snhLzVdLBHEGbsrRw8ruum9SQnkAU '
+            account: vanityAccount,
+            secret: secret
         }
         
         let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret/"+vanityAccount, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});
@@ -61,7 +84,12 @@ export class Vanity {
 
         console.log("xHash: " + xHash);
 
+        console.log("testData before purge: " + JSON.stringify(this.testData));
+        this.testData.delete(vanityAccount);
+        console.log("testData after purge: " + JSON.stringify(this.testData));
+
         return "OK";
+        
 
         let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge/"+vanityAccount, {headers: {'x-hash': xHash}, method: "delete", agent: this.useProxy ? this.proxy : null});
 

@@ -26,7 +26,6 @@ export class DB {
         this.allowedOriginsCollection = await this.getNewDbModel("AllowedOrigins");
         this.applicationApiKeysCollection = await this.getNewDbModel("ApplicationApiKeys");
         this.userIdCollection = await this.getNewDbModel("UserIdCollection");
-        this.frontendIdPayloadCollection = await this.getNewDbModel("FrontendIdPayloadCollection");
         this.xummIdPayloadCollection = await this.getNewDbModel("XummIdPayloadCollection");
         this.xrplAccountPayloadCollection = await this.getNewDbModel("XrplAccountPayloadCollection");
         this.tmpInfoTable = await this.getNewDbModel("TmpInfoTable");

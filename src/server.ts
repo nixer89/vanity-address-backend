@@ -47,7 +47,7 @@ const start = async () => {
       fastify.register(require('fastify-cors'), {
         origin: (origin, cb) => {
 
-          console.log("checking request with origin: " + origin);
+          //console.log("checking request with origin: " + origin);
           if(!origin) {
             // Requests will pass - if origin is needed will be checked later
             cb(null, true);
