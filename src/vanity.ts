@@ -228,9 +228,7 @@ export class Vanity {
         let xrpAmount = -1;
 
         if(usdRate && !Number.isNaN(usdRate))
-            xrpAmount = usdAmount / Number(usdRate) * 10;
-
-        xrpAmount = Math.round(xrpAmount) / 10;
+            xrpAmount = Math.round(usdAmount / Number(usdRate));
 
         console.log("xrpAmount: " + xrpAmount);
 
