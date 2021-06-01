@@ -313,7 +313,7 @@ async function handleVanityPayment(payloadInfo: XummTypes.XummGetPayloadResponse
     //user has paid for this address. Add it to the users purchased addresses in the DB so it is reserved
     let buyerAccount: string = payloadInfo.response.account;
     let vanityBlob:any = payloadInfo.custom_meta.blob;
-    db.storeVanityPurchase(origin, await db.getAppIdForOrigin(origin), buyerAccount, vanityBlob.account);
+    db.storeVanityPurchase(origin, await db.getAppIdForOrigin(origin), buyerAccount, vanityBlob.vanityAddress);
 
 }
 
