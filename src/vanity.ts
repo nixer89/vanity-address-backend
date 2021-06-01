@@ -186,14 +186,19 @@ export class Vanity {
             await this.xrplApi.connect();
 
         let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
+        console.log("usdTrustLine: " + JSON.stringify(usdTrustLine));
         let usdRate:string = usdTrustLine[0].specification.limit;
+
+        console.log("usdTrustLine: " + usdRate);
 
         let xrpAmount = -1;
 
         if(usdRate && !Number.isNaN(usdRate))
             xrpAmount = usdAmount * Number(usdRate) * 100;
 
-        xrpAmount = Math.round(xrpAmount) / 100
+        xrpAmount = Math.round(xrpAmount) / 100;
+
+        console.log("xrpAmount: " + xrpAmount);
 
         return JSON.stringify(xrpAmount * 1000000);
     }
