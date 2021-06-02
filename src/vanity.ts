@@ -205,21 +205,22 @@ export class Vanity {
     async convertUSDtoXRP(usdAmount: number): Promise<string> {
         //read current trustline limit and convert USD value to XRP value + round to one decimal XRP value
 
-        console.log("api is connected: " + this.xrplApi.isConnected());
+        let rateApi = new RippleAPI({server: "wss://hooks-testnet.xrpl-labs.com"});
 
-        if(!this.xrplApi.isConnected()) {
+        console.log("api is connected: " + rateApi.isConnected());
+
+        if(!rateApi.isConnected()) {
             try {
-                console.log("connecting...")
-                this.xrplApi = new RippleAPI({server: config.XRPL_SERVER});
-                await this.xrplApi.connect();
-                console.log("api is connected: " + this.xrplApi.isConnected());
+                console.log("connecting rate api...")
+                await rateApi.connect();
+                console.log("api is connected: " + rateApi.isConnected());
             } catch(err) {
-                console.log("api is connected: " + this.xrplApi.isConnected());
+                console.log("api is connected: " + rateApi.isConnected());
                 console.log(err);
             }
         }      
 
-        let usdTrustLine = await this.xrplApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
+        let usdTrustLine = await rateApi.getTrustlines("rXUMMaPpZqPutoRszR29jtC8amWq3APkx", {currency: "USD"});
         console.log("usdTrustLine: " + JSON.stringify(usdTrustLine));
         let usdRate:string = usdTrustLine[0].specification.limit;
 
