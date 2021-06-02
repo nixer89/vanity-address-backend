@@ -95,8 +95,8 @@ export interface PurchasedVanityAddresses {
     updated: Date
 }
 
-export interface SearchResult {
-    result: string[]
+export interface AddressResult {
+    addresses: string[]
 }
 
 export interface AddressAndSecret {

@@ -423,8 +423,26 @@ export class DB {
         }
     }
 
-    async getPurchasedVanityAddress(): Promise<string[]> {
+    async getPurchasedVanityAddress(account:string): Promise<string[]> {
         console.log("[DB]: getPurchasedVanityAddress");
+        try {
+            let findResult:PurchasedVanityAddresses[] = await this.purchasedVanityAddressCollection.find({account: account}).toArray();
+
+            if(findResult && findResult.length >=1) {
+                return findResult[0].vanityAddresses;
+            } else {
+                return [];
+            }
+
+        } catch(err) {
+            console.log("[DB]: error getPurchasedVanityAddress");
+            console.log(JSON.stringify(err));
+            return [];
+        }
+    }
+
+    async getAllPurchasedVanityAddress(): Promise<string[]> {
+        console.log("[DB]: getAllPurchasedVanityAddress");
         try {
             let findResult:PurchasedVanityAddresses[] = await this.purchasedVanityAddressCollection.find({}).toArray();
 
@@ -441,7 +459,7 @@ export class DB {
             }
 
         } catch(err) {
-            console.log("[DB]: error getPayloadIdsByFrontendIdForApplication");
+            console.log("[DB]: error getAllPurchasedVanityAddress");
             console.log(JSON.stringify(err));
             return [];
         }

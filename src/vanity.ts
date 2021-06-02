@@ -4,7 +4,7 @@ import * as fetch from 'node-fetch';
 import { Prepare, RippleAPI } from 'ripple-lib';
 import * as crypto from 'crypto';
 import { FormattedSettings } from 'ripple-lib/dist/npm/common/types/objects/settings';
-import { AddressAndSecret, SearchResult, TransactionValidation } from './util/types';
+import { AddressAndSecret, AddressResult, TransactionValidation } from './util/types';
 
 export class Vanity {
     private proxy = new HttpsProxyAgent(config.PROXY_URL);
@@ -19,7 +19,7 @@ export class Vanity {
     //initialize xrpl connection
     xrplApi = new RippleAPI({server: config.XRPL_SERVER});
 
-    async searchForVanityAddress(searchWord: string): Promise<SearchResult> {
+    async searchForVanityAddress(searchWord: string): Promise<AddressResult> {
         console.log("searchForVanityAddress: " + searchWord);
 
         let xHash:string = crypto.createHash('sha256').update("search"+searchWord+config.VANITY_BACKEND_SECRET).digest("hex");
@@ -36,7 +36,7 @@ export class Vanity {
         }));
 
         return {
-            result: returnValue
+            addresses: returnValue
         }
         
         let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"search/"+searchWord, {headers: {'x-hash': xHash}, method: "get" , agent: this.useProxy ? this.proxy : null});

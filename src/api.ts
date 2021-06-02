@@ -2,11 +2,10 @@ import * as Xumm from './xumm';
 import * as Db from './db';
 import * as Special from './special';
 import * as Vanity from './vanity';
-import * as config from './util/config';
 import consoleStamp = require("console-stamp");
 import { XummTypes } from 'xumm-sdk';
 import DeviceDetector = require("device-detector-js");
-import { AddressAndSecret, GenericBackendPostRequestOptions, SearchResult, TransactionValidation } from './util/types';
+import { AddressAndSecret, AddressResult, TransactionValidation } from './util/types';
 
 consoleStamp(console, { pattern: 'yyyy-mm-dd HH:MM:ss' });
 
@@ -206,20 +205,39 @@ export async function registerRoutes(fastify, opts, next) {
             reply.code(500).send('Please provide a word to search for. Calls without search word are not allowed');
         } else {
             try {
-                let searchResult:SearchResult = await vanity.searchForVanityAddress(request.params.searchWord);
-                let alreadyBought = await db.getPurchasedVanityAddress();
+                let searchResult:AddressResult = await vanity.searchForVanityAddress(request.params.searchWord);
+                let alreadyBought = await db.getAllPurchasedVanityAddress();
 
                 console.log("alreadyBought addresses: " + JSON.stringify(alreadyBought));
 
-                if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.result && searchResult.result.length > 0) {
+                if(alreadyBought && alreadyBought.length > 0 && searchResult && searchResult.addresses && searchResult.addresses.length > 0) {
                     //check
                     console.log("checking search result: " + JSON.stringify(searchResult));
-                    searchResult.result = searchResult.result.filter(address => !alreadyBought.includes(address));
+                    searchResult.addresses = searchResult.addresses.filter(address => !alreadyBought.includes(address));
                     console.log("returning search result: " + JSON.stringify(searchResult));
                     return searchResult;
                 } else {
                     //nothing to check
                     return searchResult;
+                }
+            } catch {
+                return { success : false, error: true, message: 'Something went wrong. Please check your request'};
+            }
+        }
+    });
+
+    fastify.get('/api/v1/vanity/purchased/:account', async (request, reply) => {
+        //console.log("request params: " + JSON.stringify(request.params));
+        if(!request.params.searchWord) {
+            reply.code(500).send('Please provide a account to get the purchases for. Calls without account are not allowed');
+        } else {
+            try {
+                let alreadyBought = await db.getPurchasedVanityAddress(request.params.account);
+
+                if(alreadyBought) {
+                    return { addresses: alreadyBought };
+                } else {
+                    return { addresses: [] };
                 }
             } catch {
                 return { success : false, error: true, message: 'Something went wrong. Please check your request'};
@@ -325,10 +343,29 @@ async function handleWebhookRequest(request:any): Promise<any> {
 
 async function handleVanityPayment(payloadInfo: XummTypes.XummGetPayloadResponse, origin: string) {
     //user has paid for this address. Add it to the users purchased addresses in the DB so it is reserved
-    let buyerAccount: string = payloadInfo.response.account;
-    let vanityBlob:any = payloadInfo.custom_meta.blob;
-    db.storeVanityPurchase(origin, await db.getAppIdForOrigin(origin), buyerAccount, vanityBlob.vanityAddress);
+    if(payloadInfo && special.successfullPaymentPayloadValidation(payloadInfo)) {
+        let txResult:TransactionValidation = await special.validatePaymentOnLedger(payloadInfo.response.txid, payloadInfo);
 
+        console.log("handleVanityPayment TXRESULT: " + JSON.stringify(txResult));
+
+        if(txResult) {
+            if(payloadInfo.custom_meta.blob) {
+                txResult.account = payloadInfo.response.account;
+                let vanityObject:any = payloadInfo.custom_meta.blob;
+                let vanityAddress:string = vanityObject ? vanityObject.vanityAddress : null;
+
+                console.log("handleVanityPayment ADDRESS: " + vanityAddress);
+
+                //if(vanityAddress && txResult.success && txResult.testnet == false) { <---- USE THIS WHEN IN PROD!!!
+                if(vanityAddress && txResult.success) {
+                    let buyerAccount: string = payloadInfo.response.account;
+                    let vanityBlob:any = payloadInfo.custom_meta.blob;
+                    if(buyerAccount && vanityBlob.vanityAddress)
+                        db.storeVanityPurchase(origin, await db.getAppIdForOrigin(origin), buyerAccount, vanityBlob.vanityAddress);
+                }
+            }
+        }
+    }
 }
 
 async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadResponse) {
@@ -347,6 +384,7 @@ async function handleVanityActivation(payloadInfo: XummTypes.XummGetPayloadRespo
 
                 console.log("handleVanityActivation ADDRESS: " + vanityAddress);
 
+                //if(vanityAddress && txResult.success && txResult.testnet == false) { <---- USE THIS WHEN IN PROD!!!
                 if(vanityAddress && txResult.success) {
                     //retrieve family seed
                     let vanityAccount:AddressAndSecret = await vanity.getSecretForVanityAddress(vanityAddress);
