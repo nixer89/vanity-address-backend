@@ -228,7 +228,7 @@ export async function registerRoutes(fastify, opts, next) {
 
     fastify.get('/api/v1/vanity/purchased/:account', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.searchWord) {
+        if(!request.params.account) {
             reply.code(500).send('Please provide a account to get the purchases for. Calls without account are not allowed');
         } else {
             try {
