@@ -95,6 +95,14 @@ export interface PurchasedVanityAddresses {
     updated: Date
 }
 
+export interface SavedSearchTermXummId {
+    applicationId: string,
+    origin: string,
+    xummid: string,
+    serchterm: string,
+    created: Date
+}
+
 export interface AddressResult {
     addresses: string[]
 }

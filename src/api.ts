@@ -300,11 +300,11 @@ async function handleWebhookRequest(request:any): Promise<any> {
                 db.saveTransactionInStatistic(origin, payloadInfo.application.uuidv4, payloadInfo.payload.tx_type);
             }
 
-            //check escrow payment
-            if(payloadInfo && payloadInfo.payload && payloadInfo.payload.tx_type && payloadInfo.payload.tx_type.toLowerCase() == 'payment' && payloadInfo.custom_meta && payloadInfo.custom_meta.blob) {
+            //check vanity payment
+            if(payloadInfo && payloadInfo.payload && payloadInfo.payload.tx_type && payloadInfo.custom_meta && payloadInfo.custom_meta.blob) {
                 let blobInfo:any = payloadInfo.custom_meta.blob;
 
-                if(blobInfo.vanityAddress) {
+                if(payloadInfo.payload.tx_type.toLowerCase() == 'payment' && blobInfo.vanityAddress) {
                     if(blobInfo.isPurchase) {
                         handleVanityPayment(payloadInfo, origin)
                     } else if(blobInfo.isActivation) {
@@ -313,6 +313,8 @@ async function handleWebhookRequest(request:any): Promise<any> {
                         //what happens here?
                         console.log("WE SHOULD NOT GO HERE");
                     }
+                } else if(payloadInfo.payload.tx_type.toLowerCase() == 'signin' && blobInfo.searchWord) {
+                    //save search word for user
                 }
             }
 

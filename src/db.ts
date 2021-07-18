@@ -1,6 +1,6 @@
 import { MongoClient, Collection, Cursor } from 'mongodb';
 import consoleStamp = require("console-stamp");
-import { AllowedOrigins, ApplicationApiKeys, UserIdCollection, FrontendIdPayloadCollection, XummIdPayloadCollection, XrplAccountPayloadCollection, StatisticsCollection, PurchasedVanityAddresses } from './util/types';
+import { AllowedOrigins, ApplicationApiKeys, UserIdCollection, FrontendIdPayloadCollection, XummIdPayloadCollection, XrplAccountPayloadCollection, StatisticsCollection, PurchasedVanityAddresses, SavedSearchTermXummId } from './util/types';
 
 consoleStamp(console, { pattern: 'yyyy-mm-dd HH:MM:ss' });
 
@@ -16,6 +16,7 @@ export class DB {
     tmpInfoTable:Collection = null;
     statisticsCollection:Collection<StatisticsCollection> = null;
     purchasedVanityAddressCollection:Collection<PurchasedVanityAddresses> = null;
+    savedSearchTermXummIdCollection:Collection<SavedSearchTermXummId> = null;
 
     allowedOriginCache:AllowedOrigins[] = null;
     applicationApiKeysCache:ApplicationApiKeys[] = null;
@@ -31,6 +32,7 @@ export class DB {
         this.tmpInfoTable = await this.getNewDbModel("TmpInfoTable");
         this.statisticsCollection = await this.getNewDbModel("StatisticsCollection");
         this.purchasedVanityAddressCollection = await this.getNewDbModel("PurchasedVanityAddressCollection");
+        this.savedSearchTermXummIdCollection = await this.getNewDbModel("SavedSearchTermXummIdCollection");
         
         return Promise.resolve();
     }
@@ -483,9 +485,23 @@ export class DB {
             }
 
         } catch(err) {
-            console.log("[DB]: error getPayloadIdsByFrontendIdForApplication");
+            console.log("[DB]: error isVanityAddressAlreadyBought");
             console.log(JSON.stringify(err));
             return false;
+        }
+    }
+
+    async saveSearchTermXummId(applicationId: string, searchTerm:string, xummId: string): Promise<any> {
+        console.log("[DB]: saveSearchTermXummId:" + " applicationId: " + applicationId + " searchTerm: " + searchTerm + " xummId: " + xummId);
+        try {
+            if((await this.savedSearchTermXummIdCollection.find({applicationId: applicationId, xummid: xummId, searchterm: searchTerm}).toArray()).length == 0) {
+                return this.savedSearchTermXummIdCollection.insertOne({applicationId: applicationId, xummid: xummId, searchterm: searchTerm, created: new Date()});
+            } else {
+                return Promise.resolve();
+            }
+        } catch(err) {
+            console.log("[DB]: error saveUser");
+            console.log(JSON.stringify(err));
         }
     }
 
@@ -585,6 +601,22 @@ export class DB {
             await this.xrplAccountPayloadCollection.createIndex({referer: -1});
             await this.xrplAccountPayloadCollection.createIndex({applicationId: -1});
             await this.xrplAccountPayloadCollection.createIndex({xrplAccount: -1, applicationId: -1, origin:-1, referer: -1}, {unique: true});
+
+            //purchasedVanityAddressCollection
+            if((await this.purchasedVanityAddressCollection.indexes).length>0)
+                await this.purchasedVanityAddressCollection.dropIndexes();
+                
+            await this.purchasedVanityAddressCollection.createIndex({account: -1});
+            await this.purchasedVanityAddressCollection.createIndex({applicationId: -1});
+            await this.purchasedVanityAddressCollection.createIndex({updated: -1});
+
+            //savedSearchTermXummIdCollection
+            if((await this.savedSearchTermXummIdCollection.indexes).length>0)
+                await this.savedSearchTermXummIdCollection.dropIndexes();
+                
+            await this.savedSearchTermXummIdCollection.createIndex({xummid: -1});
+            await this.savedSearchTermXummIdCollection.createIndex({applicationId: -1});
+            await this.savedSearchTermXummIdCollection.createIndex({searchterm: -1});
 
         } catch(err) {
             console.log("ERR creating indexes");
