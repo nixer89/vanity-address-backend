@@ -97,9 +97,8 @@ export interface PurchasedVanityAddresses {
 
 export interface SavedSearchTermXummId {
     applicationId: string,
-    origin: string,
     xummid: string,
-    serchterm: string,
+    searchterm: string,
     created: Date
 }
 

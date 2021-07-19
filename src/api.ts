@@ -309,12 +309,17 @@ async function handleWebhookRequest(request:any): Promise<any> {
                         handleVanityPayment(payloadInfo, origin)
                     } else if(blobInfo.isActivation) {
                         handleVanityActivation(payloadInfo);
+                        special.deleteSearchTermForXummId(payloadInfo.application.uuidv4, blobInfo.searchWord, payloadInfo.application.issued_user_token)
                     } else {
                         //what happens here?
                         console.log("WE SHOULD NOT GO HERE");
                     }
                 } else if(payloadInfo.payload.tx_type.toLowerCase() == 'signin' && blobInfo.searchWord) {
                     //save search word for user
+                    if(blobInfo.isSave)
+                        special.saveSearchTermForXummId(payloadInfo.application.uuidv4, blobInfo.searchWord, payloadInfo.application.issued_user_token)
+                    else if(blobInfo.isDelete)
+                        special.deleteSearchTermForXummId(payloadInfo.application.uuidv4, blobInfo.searchWord, payloadInfo.application.issued_user_token)
                 }
             }
 

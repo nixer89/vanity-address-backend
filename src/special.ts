@@ -148,4 +148,12 @@ export class Special {
             console.log(JSON.stringify(err));
         }
     }
+
+    saveSearchTermForXummId(applicationId: string, searchterm: string, xummid: string) {
+        return this.db.saveSearchTermXummId(applicationId, searchterm, xummid);
+    }
+
+    deleteSearchTermForXummId(applicationId: string, searchterm: string, xummid: string) {
+        return this.db.deleteSearchTermXummId(applicationId, searchterm, xummid);
+    }
 }

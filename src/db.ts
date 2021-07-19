@@ -500,7 +500,17 @@ export class DB {
                 return Promise.resolve();
             }
         } catch(err) {
-            console.log("[DB]: error saveUser");
+            console.log("[DB]: error saveSearchTermXummId");
+            console.log(JSON.stringify(err));
+        }
+    }
+
+    async deleteSearchTermXummId(applicationId: string, searchTerm:string, xummId: string): Promise<any> {
+        console.log("[DB]: deleteSearchTermXummId:" + " applicationId: " + applicationId + " searchTerm: " + searchTerm + " xummId: " + xummId);
+        try {
+            return this.savedSearchTermXummIdCollection.deleteOne({applicationId: applicationId, xummid: xummId, searchterm: searchTerm});
+        } catch(err) {
+            console.log("[DB]: error deleteSearchTermXummId");
             console.log(JSON.stringify(err));
         }
     }
