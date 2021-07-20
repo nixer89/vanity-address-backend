@@ -316,9 +316,9 @@ async function handleWebhookRequest(request:any): Promise<any> {
                     }
                 } else if(payloadInfo.payload.tx_type.toLowerCase() == 'signin' && blobInfo.searchWord) {
                     //save search word for user
-                    if(blobInfo.isSave)
+                    if(blobInfo.isSaveWord)
                         special.saveSearchTermForXummId(payloadInfo.application.uuidv4, blobInfo.searchWord, payloadInfo.application.issued_user_token)
-                    else if(blobInfo.isDelete)
+                    else if(blobInfo.isDeleteWord)
                         special.deleteSearchTermForXummId(payloadInfo.application.uuidv4, blobInfo.searchWord, payloadInfo.application.issued_user_token)
                 }
             }

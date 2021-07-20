@@ -277,6 +277,8 @@ export class Xumm {
                 } else {
                     throw "Invalid amount or vanity length";
                 }
+            } else if(vanityData.isSaveWord && originProperties.fixAmount) {
+                payload.txjson.Amount = originProperties.fixAmount['backendFee'];
             } else if(vanityData.isActivation) {
                 payload.txjson.Amount = "20001000";
             } else {
