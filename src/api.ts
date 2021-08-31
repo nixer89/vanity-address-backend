@@ -199,13 +199,15 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
-    fastify.get('/api/v1/vanity/search/:searchWord', async (request, reply) => {
+    fastify.post('/api/v1/vanity/search', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.searchWord) {
-            reply.code(500).send('Please provide a word to search for. Calls without search word are not allowed');
+        if(!request.body) {
+            reply.code(500).send('Please provide a body. Calls without body are not allowed');
+        } else if(!request.body.searchWord) {
+            reply.code(500).send('Please provide a search word. Calls without search word are not allowed');
         } else {
             try {
-                let searchResult:AddressResult = await vanity.searchForVanityAddress(request.params.searchWord);
+                let searchResult:AddressResult = await vanity.searchForVanityAddress(request.body.searchWord);
                 let alreadyBought = await db.getAllPurchasedVanityAddress();
 
                 console.log("alreadyBought addresses: " + JSON.stringify(alreadyBought));
@@ -226,13 +228,15 @@ export async function registerRoutes(fastify, opts, next) {
         }
     });
 
-    fastify.get('/api/v1/vanity/purchased/:account', async (request, reply) => {
+    fastify.post('/api/v1/vanity/purchased', async (request, reply) => {
         //console.log("request params: " + JSON.stringify(request.params));
-        if(!request.params.account) {
+        if(!request.body) {
+            reply.code(500).send('Please provide a body. Calls without body are not allowed');
+        } else if(!request.body.account) {
             reply.code(500).send('Please provide a account to get the purchases for. Calls without account are not allowed');
         } else {
             try {
-                let alreadyBought = await db.getPurchasedVanityAddress(request.params.account);
+                let alreadyBought = await db.getPurchasedVanityAddress(request.body.account);
 
                 if(alreadyBought) {
                     return { addresses: alreadyBought };

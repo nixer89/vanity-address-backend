@@ -39,7 +39,7 @@ export class Vanity {
             addresses: returnValue
         }
         
-        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"search/"+searchWord, {headers: {'x-hash': xHash}, method: "post" , body: JSON.stringify({search: searchWord}), agent: this.useProxy ? this.proxy : null});
+        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"search", {headers: {'x-hash': xHash}, method: "post" , body: JSON.stringify({search: searchWord}), agent: this.useProxy ? this.proxy : null});
 
         if(vanitySearchResponse && vanitySearchResponse.ok) {
             return vanitySearchResponse.json();
@@ -68,7 +68,7 @@ export class Vanity {
             vanitySecret: secret
         }
         
-        let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret/"+vanityAccount, {headers: {'x-hash': xHash}, method: "post", body: JSON.stringify({address: vanityAccount}) , agent: this.useProxy ? this.proxy : null});
+        let vanitySecretResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"secret", {headers: {'x-hash': xHash}, method: "post", body: JSON.stringify({address: vanityAccount}) , agent: this.useProxy ? this.proxy : null});
 
         if(vanitySecretResponse && vanitySecretResponse.ok) {
             return vanitySecretResponse.json();
@@ -91,7 +91,7 @@ export class Vanity {
         return "OK";
         
 
-        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge/"+vanityAccount, {headers: {'x-hash': xHash}, method: "post",body: JSON.stringify({address: vanityAccount}) , agent: this.useProxy ? this.proxy : null});
+        let vanitySearchResponse:fetch.Response = await fetch.default(config.VANITY_API_URL+"purge", {headers: {'x-hash': xHash}, method: "post",body: JSON.stringify({address: vanityAccount}) , agent: this.useProxy ? this.proxy : null});
 
         if(vanitySearchResponse && vanitySearchResponse.ok) {
             return vanitySearchResponse.json();
